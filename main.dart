@@ -1677,12 +1677,24 @@ class _PantallaChatbotIAState extends State<PantallaChatbotIA> {
   List<Map<String, String>> mensajes = [
     {
       "autor": "Nexo",
-      "texto": "Respira profundo, estás en un espacio seguro. 🌿\n\nSoy Nexo, tu asistente de apoyo. Cuéntame con total libertad lo que sientes o lo que te preocupa hoy. No sustituyo a un profesional, pero puedo acompañarte."
+      "texto": "Respira profundo, estás en un espacio seguro. 🌿\n\nSoy Nexo, tu asistente de apoyo. Cuéntame con tus palabras lo que sientes o toca una de las opciones de abajo. Puedo ayudarte con pánico, ansiedad, estrés, insomnio, tristeza, soledad o enojo. No sustituyo a un profesional, pero puedo acompañarte."
     }
   ];
 
-  Future<void> enviarMensaje() async {
-    final texto = controlador.text.trim();
+  // Atajos para que la persona sepa qué puede decir.
+  final List<String> sugerencias = const [
+    "Tengo un ataque de pánico",
+    "No puedo dormir",
+    "Me siento ansioso",
+    "Estoy muy estresado",
+    "Me siento triste",
+    "Me siento solo",
+    "Estoy enojado",
+    "No paro de pensar",
+  ];
+
+  Future<void> enviarMensaje([String? rapido]) async {
+    final texto = (rapido ?? controlador.text).trim();
     if (texto.isEmpty) return;
 
     setState(() {
@@ -1745,6 +1757,24 @@ class _PantallaChatbotIAState extends State<PantallaChatbotIA> {
               padding: EdgeInsets.all(8.0),
               child: CircularProgressIndicator(),
             ),
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              children: sugerencias
+                  .map((s) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          label: Text(s, style: const TextStyle(fontSize: 13, color: Color(0xFF3730A3))),
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(color: Color(0xFFC7D2FE)),
+                          onPressed: estaPensando ? null : () => enviarMensaje(s),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
           Container(
             padding: const EdgeInsets.all(10),
             color: Colors.white,
