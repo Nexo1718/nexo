@@ -353,6 +353,40 @@ class _HubPrincipalState extends State<HubPrincipal> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => destino));
   }
 
+  Future<void> _llamarAyuda() async {
+    final Uri tel = Uri(scheme: 'tel', path: '8009112000');
+    if (await canLaunchUrl(tel)) {
+      await launchUrl(tel);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Marca 800 911 2000 (Línea de la Vida, gratuita, 24 horas).")));
+    }
+  }
+
+  Widget _tarjetaAyuda() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFECDD3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.support_agent, color: Color(0xFFBE123C)),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              "¿Necesitas hablar con alguien? Línea de la Vida: 800 911 2000 (gratuita, 24 h).",
+              style: TextStyle(fontSize: 12.5, color: Color(0xFF881337), height: 1.3),
+            ),
+          ),
+          TextButton(onPressed: _llamarAyuda, child: const Text("Llamar")),
+        ],
+      ),
+    );
+  }
+
   void _activarSOS() async {
     showDialog(
       context: context,
@@ -424,6 +458,9 @@ class _HubPrincipalState extends State<HubPrincipal> {
                 label: const Text("BOTÓN DE EMERGENCIA S.O.S", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.5))
               ),
               
+              const SizedBox(height: 12),
+              _tarjetaAyuda(),
+
               const SizedBox(height: 25),
               const Text("Herramientas de Rescate", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
               const SizedBox(height: 15),
@@ -1039,7 +1076,7 @@ class _PantallaEjerciciosState extends State<PantallaEjercicios> {
               Column(
                 children: [
                   if (!esUltimoEjercicio) ...[
-                    OutlinedButton(onPressed: () { setState(() => pasoActual++); pedirEjercicio(); }, child: Text("Siguiente Ejercicio (Paso $pasoActual)")),
+                    OutlinedButton(onPressed: () { setState(() => pasoActual++); pedirEjercicio(); }, child: Text("Siguiente ejercicio (${pasoActual + 1} de 3)")),
                     const SizedBox(height: 15),
                   ],
                   ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 15)), onPressed: () { flutterTts.stop(); Navigator.pop(context); }, child: const Text("YA ESTOY MEJOR", style: TextStyle(fontWeight: FontWeight.bold))),
