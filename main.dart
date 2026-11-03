@@ -1,7 +1,7 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' show Random;
 import 'package:http/http.dart' as http;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -1065,17 +1065,20 @@ class _PantallaDesahogoState extends State<PantallaDesahogo> {
   List<Map<String, String>> mensajes = [{"autor": "Asistente", "texto": "Escribe sin filtro lo que te preocupa. Exagéralo al máximo posible hasta que suene absurdo."}];
   
   void enviarMensaje() {
-    if (controlador.text.trim().isEmpty) return;
-    setState(() { 
-      mensajes.add({"autor": "Usuario", "texto": controlador.text}); 
-      controlador.clear(); 
+    final texto = controlador.text.trim();
+    if (texto.isEmpty) return;
+    setState(() {
+      mensajes.add({"autor": "Usuario", "texto": texto});
+      controlador.clear();
     });
-    
+
+    final respuesta = CerebroNexo.esCrisis(texto)
+        ? CerebroNexo.analizarMensaje(texto)
+        : "Sigue escribiendo, sácalo todo. Ponerlo en palabras le quita poder a la ansiedad.";
+
     Future.delayed(const Duration(milliseconds: 800), () {
-      setState(() => mensajes.add({
-        "autor": "Asistente", 
-        "texto": "Sigue escribiendo, sácalo todo. Ponerlo en palabras le quita poder a la ansiedad."
-      }));
+      if (!mounted) return;
+      setState(() => mensajes.add({"autor": "Asistente", "texto": respuesta}));
     });
   }
 
@@ -1532,45 +1535,134 @@ class _PantallaAudiosVIPState extends State<PantallaAudiosVIP> {
 // MOTOR DE INTELIGENCIA NEXO (IA PROPIA)
 // ==========================================
 class CerebroNexo {
-  static String analizarMensaje(String mensajeUsuario) {
-    // Convertimos el mensaje a minúsculas para buscar palabras clave fácilmente
-    String msj = mensajeUsuario.toLowerCase();
+  static const String lineaAyuda =
+      'Línea de la Vida: 800 911 2000 (gratuita, 24 horas) o el 911 si hay peligro inmediato';
 
-    // 1. Detección de Crisis / Pánico
-    if (msj.contains("ataque") || msj.contains("pánico") || msj.contains("corazón") || msj.contains("respirar") || msj.contains("aire") || msj.contains("ahogo")) {
-      return "Parece que estás experimentando un pico de ansiedad física. Concéntrate en tu respiración ahora mismo. Inhala en 4 segundos, exhala en 6. Estoy aquí contigo, no estás en peligro real.";
-    } 
-    // 2. Detección de Tristeza / Estrés / Ansiedad (Ampliamos las palabras clave)
-    else if (msj.contains("triste") || msj.contains("llorar") || msj.contains("depresión") || msj.contains("mal") || msj.contains("solo") || msj.contains("sola") || msj.contains("estrés") || msj.contains("ansiedad") || msj.contains("ayuda") || msj.contains("cansad") || msj.contains("abrumad")) {
-      return "Siento mucho que estés pasando por esto. Tus sentimientos son completamente válidos. Está bien no sentirse bien todo el tiempo. Llorar o pedir ayuda es una forma de limpiar el alma. ¿Quieres desahogarte un poco más?";
-    } 
-    // 3. Detección de Insomnio
-    else if (msj.contains("dormir") || msj.contains("insomnio") || msj.contains("noche") || msj.contains("despiert")) {
-      return "El insomnio por ansiedad es muy agotador. Intenta dejar la pantalla a un lado, cierra los ojos y haz un escaneo corporal relajando desde los dedos de los pies hasta la cabeza.";
-    } 
-    // 4. Detección de Miedo / Preocupación
-    else if (msj.contains("miedo") || msj.contains("asustad") || msj.contains("preocupad") || msj.contains("futuro")) {
-      return "El miedo es una respuesta natural de tu cuerpo queriendo protegerte, pero recuerda: estás en un espacio seguro ahora. La ansiedad nos miente sobre el futuro. Concéntrate en el presente.";
-    } 
-    // 5. Retroalimentación positiva
-    else if (msj.contains("gracias") || msj.contains("mejor") || msj.contains("calma") || msj.contains("bien")) {
-      return "Me alegra muchísimo saberlo. Recuerda que tú hiciste el trabajo duro de regularte. Estoy aquí siempre que me necesites.";
-    } 
-    // 6. Respuestas Empáticas por Defecto
-    else {
-      List<String> comodines = [
-        "Te escucho con atención. Cuéntame un poco más sobre cómo te hace sentir eso.",
-        "Entiendo. A veces ponerlo en palabras es el primer paso para soltarlo. Continúa, estoy aquí.",
-        "Es completamente normal sentirse así bajo presión. Respira profundo y sigue escribiendo si lo necesitas.",
-        "Valoro mucho que compartas esto conmigo. ¿Qué crees que necesitas en este momento exacto para sentirte un poquito mejor?"
-      ];
-      return comodines[mensajeUsuario.length % comodines.length];
+  static final Random _azar = Random();
+
+  // Minúsculas y sin acentos, para comparar palabras clave.
+  static String _normalizar(String texto) {
+    const conAcento = 'áàäâéèëêíìïîóòöôúùüûñ';
+    const sinAcento = 'aaaaeeeeiiiioooouuuun';
+    var t = texto.toLowerCase();
+    for (var i = 0; i < conAcento.length; i++) {
+      t = t.replaceAll(conAcento[i], sinAcento[i]);
     }
+    return t;
+  }
+
+  static bool _tiene(String t, List<String> palabras) => palabras.any((p) => t.contains(p));
+
+  static String _elegir(List<String> opciones) => opciones[_azar.nextInt(opciones.length)];
+
+  static bool esCrisis(String mensaje) {
+    final t = _normalizar(mensaje);
+    return _tiene(t, [
+      'suicid', 'matarme', 'quitarme la vida', 'quiero morir', 'no quiero vivir',
+      'ya no quiero estar aqui', 'hacerme dano', 'lastimarme', 'cortarme',
+      'acabar con todo', 'terminar con todo', 'acabar con mi vida',
+      'mejor muerto', 'mejor muerta', 'no vale la pena vivir',
+    ]);
+  }
+
+  static String analizarMensaje(String mensajeUsuario) {
+    final t = _normalizar(mensajeUsuario);
+
+    // 0. Crisis: siempre tiene prioridad.
+    if (esCrisis(mensajeUsuario)) {
+      return 'Siento mucho que estés sufriendo así, y me importa que estés bien. No tienes que pasar por esto a solas. '
+          'Por favor, habla ahora con alguien que pueda ayudarte: $lineaAyuda. '
+          'Si puedes, avísale también a una persona de confianza que esté cerca de ti. '
+          'Yo no sustituyo a un profesional, pero aquí sigo contigo.';
+    }
+
+    // 1. Pánico / síntomas físicos
+    if (_tiene(t, ['panico', 'ataque de', 'no puedo respirar', 'me ahogo', 'taquicardia', 'palpitaciones',
+        'me falta el aire', 'me voy a desmayar', 'me voy a morir', 'mareo', 'el corazon'])) {
+      return _elegir([
+        'Lo que sientes es muy intenso, pero no es peligroso y va a pasar. Haz esto conmigo: inhala por la nariz contando 4 y exhala lento por la boca contando 6. Repítelo varias veces; estoy aquí.',
+        'Estás a salvo. Apoya los pies en el suelo, suelta los hombros y exhala largo. Luego nombra 5 cosas que ves a tu alrededor. Los picos de ansiedad suben y bajan, y este también va a bajar.',
+        'Entiendo que da mucho miedo, pero tu cuerpo solo está en modo alarma. Respira lento (4 al inhalar, 6 al exhalar) y recuérdate: «esto pasa». Si quieres, abre un ejercicio guiado en Modo Casa o Modo Calle.',
+      ]);
+    }
+
+    // 2. Insomnio
+    if (_tiene(t, ['dormir', 'insomnio', 'desvel', 'pesadilla'])) {
+      return _elegir([
+        'Dormir con la mente acelerada es agotador. Prueba esto: inhala 4, sostén 4 y exhala 6, varias veces, y deja que los pensamientos pasen sin seguirlos. Si no te duermes en unos 20 minutos, levántate un rato con luz tenue.',
+        'Es difícil descansar cuando la cabeza no para. Intenta relajar el cuerpo por partes, de los pies a la cara, tensando y soltando. Y apunta lo pendiente en un papel para dejarlo fuera de la cama.',
+      ]);
+    }
+
+    // 3. Tristeza
+    if (_tiene(t, ['triste', 'llorar', 'lloro', 'vacio', 'deprim', 'sin ganas', 'desanim'])) {
+      return _elegir([
+        'Siento que estés pasando por esto. Está bien sentirse así y no tienes que fingir que no. ¿Quieres contarme qué fue lo que más te pesó hoy?',
+        'Gracias por decírmelo. La tristeza también necesita espacio. Hoy basta con un paso pequeño: agua, aire fresco o hablar con alguien cercano. Si dura mucho tiempo, vale la pena hablarlo con un profesional.',
+      ]);
+    }
+
+    // 4. Soledad
+    if (_tiene(t, ['soledad', 'me siento solo', 'me siento sola', 'estoy solo', 'estoy sola',
+        'nadie me entiende', 'nadie me quiere', 'aislad'])) {
+      return _elegir([
+        'Sentirte solo duele, y gracias por confiármelo. Un mensaje corto a alguien de confianza puede ayudar más de lo que parece. ¿Hay alguien a quien podrías escribirle hoy, aunque sea un saludo?',
+        'No estás tan solo como se siente en este momento. Aquí estoy para escucharte. ¿Qué te gustaría que alguien te dijera ahora mismo?',
+      ]);
+    }
+
+    // 5. Enojo
+    if (_tiene(t, ['enoj', 'furia', 'coraje', 'molest', 'frustr', 'rabia'])) {
+      return _elegir([
+        'Tiene sentido que te sientas así. Antes de actuar, dale una salida al cuerpo: exhala largo varias veces, camina un poco o aprieta y suelta los puños. Cuando baje la intensidad, lo pensamos con calma.',
+        'El enojo suele traer cansancio detrás. Respira lento unas cuantas veces y, si quieres, cuéntame qué pasó; también puedes escribirlo en el Diario de Desahogo.',
+      ]);
+    }
+
+    // 6. Estrés (trabajo, escuela)
+    if (_tiene(t, ['trabajo', 'escuela', 'examen', 'tarea', 'jefe', 'estres', 'presion', 'agobi', 'abruma', 'pendientes'])) {
+      return _elegir([
+        'Cuando todo se junta, parece imposible. Intenta esto: escribe todo lo pendiente, elige solo UNA cosa pequeña para empezar y deja el resto para después. Un paso a la vez.',
+        'Suena a mucha carga. Haz una pausa de 2 minutos: respira lento y suelta los hombros. Luego dividimos lo que tienes en partes pequeñas y manejables.',
+      ]);
+    }
+
+    // 7. Miedo / preocupación / ansiedad general
+    if (_tiene(t, ['no paro de pensar', 'pensando', 'preocup', 'que pasara', 'futuro', 'miedo', 'asustad', 'ansied', 'ansios', 'nervios', 'intranquil'])) {
+      return _elegir([
+        'Se siente agotador cuando la mente no suelta. Una ayuda: separa lo que puedes controlar de lo que no. Para lo primero, elige un pequeño paso; para lo segundo, respira y déjalo pasar por ahora.',
+        'Gracias por contármelo. Prueba el ejercicio de 5 sentidos: nombra 5 cosas que ves, 4 que tocas y 3 que oyes. Ayuda a salir del bucle de pensamientos. ¿Quieres que lo hagamos juntos?',
+        'Lo que sientes es real, y se puede manejar. Respira lento y dime: ¿qué es lo que más te preocupa en este momento? A veces ponerlo en palabras lo hace más pequeño.',
+      ]);
+    }
+
+    // 8. Agradecimiento / mejoría
+    if (_tiene(t, ['gracias', 'me ayudo', 'me siento mejor', 'ya estoy mejor', 'ya me siento mejor'])) {
+      return _elegir([
+        'Me alegra mucho. Lo hiciste tú: tuviste la fuerza de detenerte y cuidarte. Aquí estaré cuando me necesites.',
+        'Qué bueno saberlo. Recuerda que estos ejercicios se pueden repetir cuando quieras. Cuídate mucho.',
+      ]);
+    }
+
+    // 9. Saludo
+    if (RegExp(r'^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|que tal|holi)\b').hasMatch(t)) {
+      return _elegir([
+        '¡Hola! Me alegra que estés aquí. ¿Cómo te sientes hoy? Cuéntame lo que quieras, sin prisa.',
+        'Hola, aquí estoy para escucharte. ¿Qué tal va tu día?',
+      ]);
+    }
+
+    // 10. Respuesta por defecto
+    return _elegir([
+      'Te escucho. Gracias por compartirlo. ¿Puedes contarme un poco más sobre cómo te sientes en este momento?',
+      'Lo que sientes importa. Mientras lo platicamos, respira lento: inhala 4, exhala 6. ¿Qué es lo que más te pesa ahora?',
+      'Estoy aquí contigo. Si quieres, también puedes abrir un ejercicio guiado en Modo Casa o Modo Calle, y lo hacemos paso a paso.',
+    ]);
   }
 }
 
 // ==========================================
-// 20. CHATBOT (IA PSICÓLOGA REAL)
+// 20. CHATBOT (ASISTENTE LOCAL, SIN INTERNET)
 // ==========================================
 class PantallaChatbotIA extends StatefulWidget {
   const PantallaChatbotIA({super.key});
@@ -1582,29 +1674,12 @@ class _PantallaChatbotIAState extends State<PantallaChatbotIA> {
   final TextEditingController controlador = TextEditingController();
   bool estaPensando = false;
 
-  // Pon tu API key real aquí:
-  final String apiKey = "AIzaSyBhHPS1FIfIylG9LYMuqrcuet37cOCfHyo";
-  late final ChatSession chat;
-
   List<Map<String, String>> mensajes = [
     {
       "autor": "Nexo",
-      "texto": "Respira profundo, estás en un espacio seguro. 🌿\n\nSoy Nexo con IA. Cuéntame con total libertad lo que sientes o lo que te preocupa hoy."
+      "texto": "Respira profundo, estás en un espacio seguro. 🌿\n\nSoy Nexo, tu asistente de apoyo. Cuéntame con total libertad lo que sientes o lo que te preocupa hoy. No sustituyo a un profesional, pero puedo acompañarte."
     }
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    final model = GenerativeModel(
-      model: 'gemini-1.5-flash',
-      apiKey: apiKey,
-    );
-    chat = model.startChat(history: [
-      Content.text('Actúa como Nexo, un terapeuta/psicólogo empático, comprensivo, cálido y conciso. Habla de forma humana y cercana.'),
-      Content.model([TextPart('Hola, soy Nexo. Estoy aquí para escucharte y ayudarte con empatía.')])
-    ]);
-  }
 
   Future<void> enviarMensaje() async {
     final texto = controlador.text.trim();
@@ -1616,25 +1691,13 @@ class _PantallaChatbotIAState extends State<PantallaChatbotIA> {
       estaPensando = true;
     });
 
-    try {
-      final response = await chat.sendMessage(Content.text(texto));
-      setState(() {
-        mensajes.add({
-          "autor": "Nexo",
-          "texto": response.text?.replaceAll('*', '').trim() ?? "Te escucho."
-        });
-      });
-    } catch (e) {
-      // Si la API key falla o hay error de cuota, te dirá el error exacto en pantalla:
-      setState(() {
-        mensajes.add({
-          "autor": "Nexo",
-          "texto": "Error de conexión con la IA: $e"
-        });
-      });
-    } finally {
-      setState(() => estaPensando = false);
-    }
+    // Asistente local (sin internet ni API): pequeña pausa para que se sienta natural.
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() {
+      mensajes.add({"autor": "Nexo", "texto": CerebroNexo.analizarMensaje(texto)});
+      estaPensando = false;
+    });
   }
 
   @override
@@ -1642,7 +1705,7 @@ class _PantallaChatbotIAState extends State<PantallaChatbotIA> {
     return Scaffold(
       backgroundColor: const Color(0xFFEEF2FF),
       appBar: AppBar(
-        title: const Text("Psicólogo Nexo (IA)"), // <-- Título clave para confirmar actualización
+        title: const Text("Asistente Nexo"),
         backgroundColor: const Color(0xFF818CF8),
         foregroundColor: Colors.white,
       ),

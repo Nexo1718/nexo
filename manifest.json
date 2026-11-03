@@ -1,12 +1,13 @@
 {
-    "name": "app_ayuda",
-    "short_name": "app_ayuda",
+    "name": "Nexo - Salud Mental",
+    "short_name": "Nexo",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#0F172A",
+    "theme_color": "#0F172A",
+    "description": "Nexo: tu espacio seguro de apoyo emocional para momentos de ansiedad.",
+    "lang": "es",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
