@@ -104,7 +104,7 @@ class PantallaLanding extends StatelessWidget {
                   border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
                 ),
                 child: const Text(
-                  "Estamos trabajando para que puedas descargar Nexo en celular y computadora.",
+                  "Puedes instalar Nexo en tu celular o computadora desde Mi Perfil, en \"Descarga la Aplicación\".",
                   style: TextStyle(fontSize: 14, color: Color(0xFF38BDF8), fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
@@ -220,11 +220,8 @@ class _PantallaDeCargaState extends State<PantallaDeCarga> {
         return;
       }
 
-      Map<String, dynamic> datos = doc.data() as Map<String, dynamic>;
-      bool esAdmin = datos['es_admin'] ?? false;
-      
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HubPrincipal(esAdmin: esAdmin)));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HubPrincipal()));
       }
     } catch (e) {
       if (mounted) {
@@ -266,29 +263,22 @@ class _PantallaLoginState extends State<PantallaLogin> {
       UserCredential credential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
       
       User? usuario = credential.user;
-      bool esAdminReal = false;
 
       if (usuario != null) {
         DocumentReference userDoc = FirebaseFirestore.instance.collection('usuarios').doc(usuario.uid);
         DocumentSnapshot doc = await userDoc.get();
-
-        esAdminReal = (usuario.email == "nexofran1718@gmail.com");
 
         if (!doc.exists) {
           await userDoc.set({
             'nombre': usuario.displayName ?? 'Usuario',
             'email': usuario.email ?? '',
             'fecha_registro': FieldValue.serverTimestamp(),
-            'es_premium': true, 
-            'es_admin': esAdminReal,
           });
-        } else {
-          await userDoc.update({'es_admin': esAdminReal, 'es_premium': true});
         }
       }
 
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HubPrincipal(esAdmin: esAdminReal)));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HubPrincipal()));
       }
     } catch (e) {
       if (mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error al iniciar sesión: $e"))); }
@@ -325,6 +315,11 @@ class _PantallaLoginState extends State<PantallaLogin> {
                     icon: Image.network("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width: 24, height: 24), 
                     label: const Text("Continuar con Google", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaPrivacidad())),
+                  child: const Text("Al continuar aceptas el aviso de privacidad. Léelo aquí.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B), decoration: TextDecoration.underline)),
+                ),
               ],
             ),
           ),
@@ -338,8 +333,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
 // 5. HUB PRINCIPAL
 // ==========================================
 class HubPrincipal extends StatefulWidget {
-  final bool esAdmin;
-  const HubPrincipal({super.key, this.esAdmin = false});
+  const HubPrincipal({super.key});
 
   @override
   State<HubPrincipal> createState() => _HubPrincipalState();
@@ -347,9 +341,7 @@ class HubPrincipal extends StatefulWidget {
 
 class _HubPrincipalState extends State<HubPrincipal> {
 
-  bool get tieneAccesoPro => true; 
-
-  void _abrirPremium(Widget destino) {
+  void _abrirPantalla(Widget destino) {
     Navigator.push(context, MaterialPageRoute(builder: (context) => destino));
   }
 
@@ -423,7 +415,7 @@ class _HubPrincipalState extends State<HubPrincipal> {
         actions: [
           IconButton(
             icon: const Icon(Icons.account_circle, size: 32, color: Color(0xFF3B82F6)), 
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PantallaMiCuenta(esAdmin: widget.esAdmin)))
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaMiCuenta()))
           ),
           const SizedBox(width: 10),
         ],
@@ -434,16 +426,7 @@ class _HubPrincipalState extends State<HubPrincipal> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("¿Qué necesitas hoy?", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                  if (widget.esAdmin)
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.purple.shade100, borderRadius: BorderRadius.circular(12)), child: const Text("ADMIN VIP", style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 11)))
-                  else
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(12)), child: Text("BETA ABIERTA", style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold, fontSize: 11))),
-                ],
-              ),
+              const Text("¿Qué necesitas hoy?", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
               const SizedBox(height: 15),
 
               ElevatedButton.icon(
@@ -477,8 +460,8 @@ class _HubPrincipalState extends State<HubPrincipal> {
               
               const Row(
                 children: [
-                  Icon(Icons.workspace_premium, color: Color(0xFFF59E0B)), SizedBox(width: 8),
-                  Text("Herramientas Especiales", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                  Icon(Icons.apps, color: Color(0xFF6366F1)), SizedBox(width: 8),
+                  Text("Más herramientas", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                 ],
               ),
               const SizedBox(height: 15),
@@ -486,9 +469,9 @@ class _HubPrincipalState extends State<HubPrincipal> {
               GridView.count(
                 shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, crossAxisSpacing: 15, mainAxisSpacing: 15, childAspectRatio: 1.2,
                 children: [
-                  _botonPremium(context, "Estadísticas", Icons.bar_chart, const PantallaEstadisticas(), const Color(0xFF818CF8)),
-                  _botonPremium(context, "Terapeuta IA", Icons.smart_toy, const PantallaChatbotIA(), const Color(0xFF6366F1)),
-                  _botonPremium(context, "Catálogo de Audios", Icons.headset, const PantallaAudiosVIP(), const Color(0xFF8B5CF6)),
+                  _botonHerramienta(context, "Estadísticas", Icons.bar_chart, const PantallaEstadisticas(), const Color(0xFF818CF8)),
+                  _botonHerramienta(context, "Terapeuta IA", Icons.smart_toy, const PantallaChatbotIA(), const Color(0xFF6366F1)),
+                  _botonHerramienta(context, "Catálogo de Audios", Icons.headset, const PantallaAudios(), const Color(0xFF8B5CF6)),
                 ],
               ),
 
@@ -584,9 +567,9 @@ class _HubPrincipalState extends State<HubPrincipal> {
     );
   }
 
-  Widget _botonPremium(BuildContext context, String titulo, IconData icono, Widget destino, Color color) {
+  Widget _botonHerramienta(BuildContext context, String titulo, IconData icono, Widget destino, Color color) {
     return InkWell(
-      onTap: () => _abrirPremium(destino), borderRadius: BorderRadius.circular(15),
+      onTap: () => _abrirPantalla(destino), borderRadius: BorderRadius.circular(15),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: [color, color.withOpacity(0.7)], begin: Alignment.topLeft, end: Alignment.bottomRight),
@@ -602,13 +585,67 @@ class _HubPrincipalState extends State<HubPrincipal> {
 // 6. MI CUENTA Y DESCARGAS
 // ==========================================
 class PantallaMiCuenta extends StatelessWidget {
-  final bool esAdmin;
-  const PantallaMiCuenta({super.key, this.esAdmin = false});
+  const PantallaMiCuenta({super.key});
+
+  void _instrucciones(BuildContext context, String titulo, String texto) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(titulo),
+        content: Text(texto, style: const TextStyle(height: 1.5)),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Entendido"))],
+      ),
+    );
+  }
+
+  // Borra el historial, el perfil y la cuenta de la persona (con confirmación).
+  Future<void> _eliminarCuenta(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("¿Eliminar tu cuenta?"),
+        content: const Text("Se borrarán tu cuenta y todo tu historial de ansiedad. Esta acción no se puede deshacer."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancelar")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Sí, eliminar"),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+
+    final usuario = FirebaseAuth.instance.currentUser;
+    if (usuario == null) return;
+
+    try {
+      // Firebase exige haber iniciado sesión hace poco para borrar una cuenta.
+      await usuario.reauthenticateWithPopup(GoogleAuthProvider());
+
+      final refUsuario = FirebaseFirestore.instance.collection('usuarios').doc(usuario.uid);
+      final historial = await refUsuario.collection('historial_ansiedad').get();
+      for (final doc in historial.docs) {
+        await doc.reference.delete();
+      }
+      await refUsuario.delete();
+      await usuario.delete();
+
+      navigator.pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const PantallaLogin()), (route) => false);
+      messenger.showSnackBar(const SnackBar(content: Text("Tu cuenta y tus datos fueron eliminados.")));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text("No se pudo eliminar la cuenta: $e")));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     User? usuarioActual = FirebaseAuth.instance.currentUser;
-    String nombrePlan = esAdmin ? "Estatus: Administrador" : "Plan: Beta Abierta (Gratis)";
 
     return Scaffold(
       appBar: AppBar(title: const Text("Mi Perfil")),
@@ -622,12 +659,6 @@ class PantallaMiCuenta extends StatelessWidget {
               const SizedBox(height: 15),
               Text("¡Hola, ${usuarioActual.displayName ?? 'Usuario'}!", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               Text(usuarioActual.email ?? "", style: const TextStyle(color: Colors.grey, fontSize: 16)), 
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                decoration: BoxDecoration(color: const Color(0xFFDBEAFE), borderRadius: BorderRadius.circular(20)),
-                child: Text(nombrePlan, style: const TextStyle(color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold)),
-              ),
               const SizedBox(height: 30),
               OutlinedButton.icon(
                 onPressed: () async {
@@ -638,6 +669,17 @@ class PantallaMiCuenta extends StatelessWidget {
                 }, 
                 icon: const Icon(Icons.logout, color: Colors.red), label: const Text("Cerrar Sesión", style: TextStyle(color: Colors.red))
               ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PantallaPrivacidad())),
+                icon: const Icon(Icons.privacy_tip_outlined),
+                label: const Text("Aviso de privacidad"),
+              ),
+              TextButton.icon(
+                onPressed: () => _eliminarCuenta(context),
+                icon: const Icon(Icons.delete_forever, color: Colors.red),
+                label: const Text("Eliminar mi cuenta y mis datos", style: TextStyle(color: Colors.red)),
+              ),
             ],
             
             const Divider(height: 50),
@@ -647,7 +689,7 @@ class PantallaMiCuenta extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () { 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Próximamente disponible."))); 
+                    _instrucciones(context, "Instalar en Android", "Abre Nexo en Chrome. Toca el menú (⋮) y elige \"Instalar app\" o \"Agregar a pantalla de inicio\". Quedará con su ícono, como cualquier otra app."); 
                   }, 
                   icon: const Icon(Icons.android, color: Colors.green), 
                   label: const Text("Android")
@@ -657,7 +699,7 @@ class PantallaMiCuenta extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () { 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Próximamente disponible en App Store."))); 
+                    _instrucciones(context, "Instalar en iPhone", "Abre Nexo en Safari. Toca el botón Compartir (el cuadro con una flecha hacia arriba) y elige \"Agregar a pantalla de inicio\". Quedará con su ícono, como cualquier otra app."); 
                   }, 
                   icon: const Icon(Icons.apple, color: Colors.black), 
                   label: const Text("iOS")
@@ -667,7 +709,7 @@ class PantallaMiCuenta extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () { 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Próximamente disponible para PC."))); 
+                    _instrucciones(context, "Instalar en computadora", "Abre Nexo en Chrome o Edge. En la barra de direcciones toca el ícono de instalar (una pantalla con una flecha), o abre el menú (⋮) y elige \"Instalar Nexo\". Se abrirá en su propia ventana, con su ícono en el escritorio o en el menú de inicio."); 
                   }, 
                   icon: const Icon(Icons.desktop_windows, color: Colors.blue), 
                   label: const Text("PC")
@@ -1432,7 +1474,7 @@ class PantallaAfirmaciones extends StatefulWidget {
   State<PantallaAfirmaciones> createState() => _PantallaAfirmacionesState();
 }
 class _PantallaAfirmacionesState extends State<PantallaAfirmaciones> {
-  final List<String> afirmaciones = ["Estoy a salvo en este momento.", "Esta sensación es incómoda, pero NO es peligrosa.", "Mi cuerpo sabe cómo volver a la calma.", "Tengo el control de mi respiración aquí y ahora.", "He superado esto antes y lo superaré hoy también.", "No tengo que resolver todo en este instante."];
+  final List<String> afirmaciones = ["Estoy a salvo en este momento.", "Esta sensación es incómoda, pero NO es peligrosa.", "Mi cuerpo sabe cómo volver a la calma.", "Tengo el control de mi respiración aquí y ahora.", "He superado esto antes y lo superaré hoy también.", "No tengo que resolver todo en este instante.", "Puedo sentir ansiedad y aun así seguir adelante.", "No tengo que ser perfecto para merecer calma.", "Un pensamiento no es un hecho.", "Estoy haciendo lo mejor que puedo hoy.", "Pedir ayuda es una muestra de fuerza.", "Cada respiración me ayuda a volver al presente."];
   int indice = 0;
   @override
   Widget build(BuildContext context) {
@@ -1511,14 +1553,14 @@ class PantallaEstadisticas extends StatelessWidget {
 }
 
 // ==========================================
-// 19. AUDIOS Y FRECUENCIAS ESPECIALES
+// 19. AUDIOS Y FRECUENCIAS
 // ==========================================
-class PantallaAudiosVIP extends StatefulWidget {
-  const PantallaAudiosVIP({super.key});
+class PantallaAudios extends StatefulWidget {
+  const PantallaAudios({super.key});
   @override
-  State<PantallaAudiosVIP> createState() => _PantallaAudiosVIPState();
+  State<PantallaAudios> createState() => _PantallaAudiosState();
 }
-class _PantallaAudiosVIPState extends State<PantallaAudiosVIP> {
+class _PantallaAudiosState extends State<PantallaAudios> {
   final AudioPlayer reproductor = AudioPlayer();
   String frecuenciaActiva = "";
   @override
@@ -1547,7 +1589,7 @@ class _PantallaAudiosVIPState extends State<PantallaAudiosVIP> {
           const SizedBox(height: 30),
           if (frecuenciaActiva.isNotEmpty)
             Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]), child: Column(children: [
-              const Icon(Icons.workspace_premium, size: 40, color: Color(0xFF8B5CF6)), const SizedBox(height: 10), Text("Reproduciendo: $frecuenciaActiva", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155))), const SizedBox(height: 15),
+              const Icon(Icons.music_note, size: 40, color: Color(0xFF8B5CF6)), const SizedBox(height: 10), Text("Reproduciendo: $frecuenciaActiva", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF334155))), const SizedBox(height: 15),
               FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)), onPressed: detenerAudio, icon: const Icon(Icons.stop), label: const Text("Detener Audio"))
             ]))
         ],
@@ -1664,6 +1706,46 @@ class CerebroNexo {
       ]);
     }
 
+    // 6b. Dolor en el pecho: seguridad primero
+    if (_tiene(t, ['dolor en el pecho', 'me duele el pecho', 'dolor de pecho', 'opresion en el pecho'])) {
+      return 'Si tienes dolor fuerte en el pecho que no cede, te falta el aire de forma intensa, o ya tienes algún problema del corazón, busca atención médica de urgencia: llama al 911. '
+          'Si ya te revisaron antes y suele ser ansiedad, respira lento (4 al inhalar, 6 al exhalar) y recuerda que va a pasar.';
+    }
+
+    // 6c. Autoestima / culpa
+    if (_tiene(t, ['no valgo', 'soy un fracaso', 'no sirvo', 'me odio', 'me siento culpable', 'tengo la culpa', 'es mi culpa',
+        'soy inutil', 'no soy suficiente', 'no soy bueno', 'no soy buena'])) {
+      return _elegir([
+        'Gracias por decirlo. Esa voz que te juzga con tanta dureza no es la verdad: es la ansiedad hablando fuerte. Intenta decirte lo que le dirías a un buen amigo en tu lugar. ¿Qué le dirías?',
+        'Equivocarte o sentir que no llegas no define tu valor como persona. Prueba escribir tres cosas que sí hiciste bien esta semana, por pequeñas que sean. Si quieres, las repasamos juntos.',
+      ]);
+    }
+
+    // 6d. Relaciones (pareja, familia, amistades)
+    if (_tiene(t, ['mi pareja', 'mi novio', 'mi novia', 'discusion', 'discuti', 'pelea con', 'mi familia', 'mis papas',
+        'mi mama', 'mi papa', 'mis amigos', 'ruptura', 'terminamos', 'me dejo'])) {
+      return _elegir([
+        'Los conflictos con personas que queremos pesan mucho. Antes de responder, dale un respiro a tu cuerpo: exhala largo varias veces. Cuando estés más tranquilo, piensa qué necesitas decir y qué necesitas pedir. ¿Quieres contarme qué pasó?',
+        'Lo que viviste con esa persona importa, y es normal que te afecte. Puedes escribirlo en el Diario de Desahogo para ordenar lo que sientes antes de hablarlo. Si es una situación que te daña, hablarlo con alguien de confianza o con un profesional puede ayudarte.',
+      ]);
+    }
+
+    // 6e. Duelo / pérdida
+    if (_tiene(t, ['murio', 'fallecio', 'perdi a', 'duelo', 'lo extrano', 'la extrano', 'se murio'])) {
+      return _elegir([
+        'Lo siento muchísimo. El duelo no tiene un tiempo ni una forma correcta, y está bien llorar, extrañar o sentir que no puedes más. No tienes que atravesarlo a solas: si puedes, busca a alguien cercano que te acompañe. ¿Quieres contarme sobre esa persona?',
+        'Perder a alguien duele de verdad. Date permiso de sentir lo que sientes hoy, sin exigirte estar bien. Respirar lento y beber agua también es cuidarte. Si el dolor se vuelve demasiado, un profesional puede acompañarte en este proceso.',
+      ]);
+    }
+
+    // 6f. Cansancio / agotamiento
+    if (_tiene(t, ['cansad', 'agotad', 'sin energia', 'no me puedo concentrar', 'no puedo concentrarme', 'burnout'])) {
+      return _elegir([
+        'El cansancio que deja la ansiedad es real: tu cuerpo ha estado en alerta mucho tiempo. Hoy trata de bajar el ritmo: una pausa corta, agua, y soltar hombros y mandíbula. Dormir y comer a tus horas también ayuda más de lo que parece.',
+        'Suena a que has cargado mucho. No tienes que rendir al máximo hoy. Elige una sola cosa importante y permite que lo demás espere. Si el agotamiento dura semanas, vale la pena platicarlo con un profesional.',
+      ]);
+    }
+
     // 7. Miedo / preocupación / ansiedad general
     if (_tiene(t, ['no paro de pensar', 'pensando', 'preocup', 'que pasara', 'futuro', 'miedo', 'asustad', 'ansied', 'ansios', 'nervios', 'intranquil'])) {
       return _elegir([
@@ -1671,6 +1753,12 @@ class CerebroNexo {
         'Gracias por contármelo. Prueba el ejercicio de 5 sentidos: nombra 5 cosas que ves, 4 que tocas y 3 que oyes. Ayuda a salir del bucle de pensamientos. ¿Quieres que lo hagamos juntos?',
         'Lo que sientes es real, y se puede manejar. Respira lento y dime: ¿qué es lo que más te preocupa en este momento? A veces ponerlo en palabras lo hace más pequeño.',
       ]);
+    }
+
+    // 7b. Ayuda general / qué puede hacer el asistente
+    if (_tiene(t, ['que puedes hacer', 'como funcionas', 'necesito ayuda', 'ayudame', 'no se que hacer', 'para que sirves'])) {
+      return 'Puedo acompañarte cuando sientas pánico, ansiedad, estrés, insomnio, tristeza, soledad, enojo, culpa, problemas con otras personas o duelo. '
+          'Cuéntame con tus palabras qué sientes, o toca una de las sugerencias. También puedes abrir un ejercicio guiado en Modo Casa o Modo Calle.';
     }
 
     // 8. Agradecimiento / mejoría
@@ -1728,6 +1816,10 @@ class _PantallaChatbotIAState extends State<PantallaChatbotIA> {
     "Me siento solo",
     "Estoy enojado",
     "No paro de pensar",
+    "Me siento culpable",
+    "Estoy muy cansado",
+    "Tuve una discusión",
+    "¿Qué puedes hacer?",
   ];
 
   Future<void> enviarMensaje([String? rapido]) async {
@@ -1844,6 +1936,78 @@ class _PantallaChatbotIAState extends State<PantallaChatbotIA> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+// ==========================================
+// 21. AVISO DE PRIVACIDAD
+// ==========================================
+class PantallaPrivacidad extends StatelessWidget {
+  const PantallaPrivacidad({super.key});
+
+  Widget _seccion(String titulo, String texto) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+          const SizedBox(height: 6),
+          Text(texto, style: const TextStyle(fontSize: 14.5, height: 1.5, color: Color(0xFF475569))),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text("Aviso de privacidad"),
+        backgroundColor: const Color(0xFFDBEAFE),
+        foregroundColor: const Color(0xFF1E40AF),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: ListView(
+            padding: const EdgeInsets.all(22),
+            children: [
+              _seccion(
+                "Qué datos guardamos",
+                "Al iniciar sesión con Google guardamos tu nombre, tu correo y la fecha de registro. "
+                "Cuando mides tu nivel de ansiedad en Modo Casa o Modo Calle, guardamos ese nivel, el modo y la fecha, "
+                "para mostrarte tus estadísticas.",
+              ),
+              _seccion(
+                "Qué NO guardamos",
+                "Lo que escribes en el Asistente y en el Diario de Desahogo no se guarda: solo existe en tu pantalla "
+                "mientras usas la app.",
+              ),
+              _seccion(
+                "Para qué los usamos",
+                "Solo para mostrarte tu perfil y tus estadísticas dentro de Nexo. No vendemos tus datos. "
+                "La información se almacena en Firebase, un servicio de Google.",
+              ),
+              _seccion(
+                "Tus derechos",
+                "Puedes ver tu historial en Estadísticas y cerrar sesión cuando quieras. También puedes eliminar tu "
+                "cuenta y todos tus datos desde Mi Perfil, con el botón \"Eliminar mi cuenta y mis datos\".",
+              ),
+              _seccion(
+                "Importante",
+                "Nexo es una herramienta de apoyo y no sustituye la atención de un profesional de la salud mental. "
+                "Si estás en una emergencia, llama a la Línea de la Vida: 800 911 2000 (gratuita, 24 horas) o al 911.",
+              ),
+              _seccion(
+                "Dudas o comentarios",
+                "Usa el botón \"Enviar comentario\" de la pantalla principal.",
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
